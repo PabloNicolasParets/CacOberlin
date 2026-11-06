@@ -1,0 +1,198 @@
+<div class="page-shell">
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="CAC, inicio">
+      <span class="brand-mark">CAC</span>
+      <span class="brand-copy">
+        <strong>Centro de Atención Comunitaria</strong>
+        <span>Área de acompañamiento</span>
+      </span>
+    </a>
+    <div class="topbar-meta">
+      <span class="status-dot" aria-hidden="true"></span>
+      <span>Sistema de atención</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-heading" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">REGISTRO DE ATENCIÓN</p>
+        <h1 id="page-title">Primera escucha</h1>
+        <p class="page-intro">Un espacio para recibir, orientar y acompañar cada consulta.</p>
+      </div>
+      <div class="today-card">
+        <span class="today-label">HOY</span>
+        <strong>{{ form.record_date | date:'EEEE d MMMM, y':'':'es' }}</strong>
+      </div>
+    </section>
+
+    <section class="summary-row" aria-label="Resumen de consultas">
+      <div class="summary-card">
+        <span class="summary-icon total-icon" aria-hidden="true">↗</span>
+        <span class="summary-copy"><span>Consultas registradas</span><strong>{{ records.length | number }}</strong></span>
+      </div>
+      <div class="summary-card">
+        <span class="summary-icon direct-icon" aria-hidden="true">D</span>
+        <span class="summary-copy"><span>Atención directa</span><strong>{{ directCount | number }}</strong></span>
+      </div>
+      <div class="summary-card">
+        <span class="summary-icon indirect-icon" aria-hidden="true">I</span>
+        <span class="summary-copy"><span>Atención indirecta</span><strong>{{ indirectCount | number }}</strong></span>
+      </div>
+      <span class="privacy-note"><span aria-hidden="true">◇</span> Información confidencial</span>
+    </section>
+
+    <div class="workspace-grid">
+      <section class="panel intake-panel" aria-labelledby="form-title">
+        <div class="panel-heading">
+          <div class="heading-icon" aria-hidden="true">＋</div>
+          <div>
+            <p class="eyebrow">NUEVA ATENCIÓN</p>
+            <h2 id="form-title">{{ editingId === null ? 'Registrar consulta' : 'Editar consulta' }}</h2>
+          </div>
+        </div>
+
+        <div class="notice error-notice" role="alert" [hidden]="!errorMessage">
+          <span aria-hidden="true">!</span>{{ errorMessage }}
+        </div>
+        <div class="notice success-notice" role="status" [hidden]="!successMessage">
+          <span aria-hidden="true">✓</span>{{ successMessage }}
+        </div>
+
+        <form #recordForm="ngForm" (ngSubmit)="saveRecord()">
+          <div class="form-grid date-grid">
+            <label class="field">
+              <span>Fecha <span class="required-mark">*</span></span>
+              <input type="date" name="record_date" [(ngModel)]="form.record_date" required>
+            </label>
+            <fieldset class="field type-field">
+              <legend>Tipo de consulta <span class="required-mark">*</span></legend>
+              <div class="choice-group">
+                <label class="choice-card" [class.active]="form.consult_type === 'directa'">
+                  <input type="radio" name="consult_type" value="directa" [(ngModel)]="form.consult_type" required>
+                  <span class="choice-indicator"></span><span>Directa</span>
+                </label>
+                <label class="choice-card" [class.active]="form.consult_type === 'indirecta'">
+                  <input type="radio" name="consult_type" value="indirecta" [(ngModel)]="form.consult_type" required>
+                  <span class="choice-indicator"></span><span>Indirecta</span>
+                </label>
+              </div>
+            </fieldset>
+          </div>
+
+          <div class="form-grid">
+            <label class="field full-field">
+              <span>Nombre y apellido <span class="required-mark">*</span></span>
+              <input type="text" name="full_name" [(ngModel)]="form.full_name" placeholder="Nombre completo" maxlength="160" required>
+            </label>
+            <label class="field full-field">
+              <span>Dirección</span>
+              <input type="text" name="address" [(ngModel)]="form.address" placeholder="Calle, número, localidad" maxlength="240">
+            </label>
+            <label class="field">
+              <span>DNI</span>
+              <input type="text" name="dni" [(ngModel)]="form.dni" placeholder="Número de documento" maxlength="32">
+            </label>
+            <label class="field">
+              <span>Parentesco</span>
+              <input type="text" name="kinship" [(ngModel)]="form.kinship" placeholder="Si corresponde" maxlength="80">
+            </label>
+            <label class="field full-field">
+              <span>Consulta <span class="required-mark">*</span></span>
+              <textarea name="consultation" [(ngModel)]="form.consultation" placeholder="Motivo de consulta y orientación brindada..." rows="4" maxlength="5000" required></textarea>
+            </label>
+            <label class="field full-field">
+              <span>Derivación <span class="optional-label">OPCIONAL</span></span>
+              <textarea name="referral" [(ngModel)]="form.referral" placeholder="Área o institución a la que se deriva, si corresponde..." rows="2" maxlength="2000"></textarea>
+            </label>
+          </div>
+
+          <div class="form-footer">
+            <span class="required-hint"><span class="required-mark">*</span> Campos obligatorios</span>
+            <div class="form-actions">
+              <button class="button button-quiet" type="button" (click)="resetForm()" [disabled]="isSaving">
+                {{ editingId === null ? 'Limpiar' : 'Cancelar' }}
+              </button>
+              <button class="button button-primary" type="submit" [disabled]="recordForm.invalid || isSaving">
+                <span aria-hidden="true">{{ editingId === null ? '＋' : '✓' }}</span>
+                {{ isSaving ? 'Guardando...' : editingId === null ? 'Registrar escucha' : 'Guardar cambios' }}
+              </button>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel list-panel" aria-labelledby="list-title">
+        <div class="list-heading">
+          <div>
+            <p class="eyebrow">SEGUIMIENTO</p>
+            <h2 id="list-title">Consultas recientes <span class="list-count">{{ visibleRecords.length }}</span></h2>
+          </div>
+          <span class="list-date-note">Ordenadas por fecha</span>
+        </div>
+
+        <label class="search-box">
+          <span class="search-icon" aria-hidden="true"></span>
+          <input type="search" [(ngModel)]="search" name="search" placeholder="Buscar por nombre, DNI o consulta" aria-label="Buscar consultas">
+          <kbd>⌕</kbd>
+        </label>
+
+        <div class="filter-row" role="group" aria-label="Filtrar por tipo de atención">
+          <button type="button" class="filter-chip" [class.selected]="selectedType === 'todas'" (click)="selectedType = 'todas'">Todas <span>{{ records.length }}</span></button>
+          <button type="button" class="filter-chip" [class.selected]="selectedType === 'directa'" (click)="selectedType = 'directa'">Directas <span>{{ directCount }}</span></button>
+          <button type="button" class="filter-chip" [class.selected]="selectedType === 'indirecta'" (click)="selectedType = 'indirecta'">Indirectas <span>{{ indirectCount }}</span></button>
+        </div>
+
+        <div class="list-status" [hidden]="!isLoading" role="status">Cargando consultas...</div>
+        <div class="empty-state" [hidden]="isLoading || visibleRecords.length > 0">
+          <div class="empty-mark" aria-hidden="true">⌕</div>
+          <strong>{{ records.length === 0 ? 'Todavía no hay consultas' : 'No encontramos resultados' }}</strong>
+          <p>{{ records.length === 0 ? 'Las nuevas escuchas aparecerán aquí para su seguimiento.' : 'Probá con otro nombre, DNI o tipo de atención.' }}</p>
+        </div>
+
+        <div class="record-list" [hidden]="isLoading || visibleRecords.length === 0">
+          @for (record of visibleRecords; track record.id) {
+            <article class="record-item">
+              <div class="record-date">
+                <span class="date-day">{{ record.record_date | date:'dd' }}</span>
+                <span class="date-month">{{ record.record_date | date:'MMM':'':'es' }}</span>
+                <span class="date-year">{{ record.record_date | date:'yyyy' }}</span>
+              </div>
+              <div class="record-main">
+                <div class="record-person-row">
+                  <h3>{{ record.full_name }}</h3>
+                  <span class="type-badge" [class.indirect-badge]="record.consult_type === 'indirecta'">
+                    {{ record.consult_type === 'directa' ? 'Directa' : 'Indirecta' }}
+                  </span>
+                </div>
+                <p class="record-meta">
+                  <span>{{ record.dni || 'Sin DNI' }}</span>
+                  @if (record.kinship) { <span class="meta-separator">·</span><span>{{ record.kinship }}</span> }
+                </p>
+                <p class="record-consultation">{{ record.consultation }}</p>
+                @if (record.referral) {
+                  <p class="record-referral"><span>Derivación</span> {{ record.referral }}</p>
+                }
+                <div class="record-actions">
+                  <button type="button" class="text-action" (click)="editRecord(record)" [disabled]="isDeleting">Editar</button>
+                  <span aria-hidden="true">·</span>
+                  <button type="button" class="text-action delete-action" (click)="deleteRecord(record)" [disabled]="isDeleting">Eliminar</button>
+                </div>
+              </div>
+            </article>
+          }
+        </div>
+
+        <footer class="list-footer">
+          <span>{{ visibleRecords.length }} {{ visibleRecords.length === 1 ? 'consulta' : 'consultas' }}</span>
+          <span>Datos de atención confidenciales</span>
+        </footer>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <span>Centro de Atención Comunitaria</span>
+    <span>Primera escucha <span aria-hidden="true">·</span> Registro interno</span>
+  </footer>
+</div>
