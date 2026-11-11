@@ -1,5 +1,6 @@
 from contextlib import closing, asynccontextmanager
 from datetime import date
+import json
 import os
 from pathlib import Path
 import sqlite3
@@ -36,6 +37,54 @@ class Record(RecordInput):
     created_at: str
 
 
+class ContactInput(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    date_and_place: str | None = Field(default=None, max_length=240)
+    full_name: str = Field(min_length=2, max_length=160)
+    birth_date: str | None = Field(default=None, max_length=40)
+    self_perceived_gender: str | None = Field(default=None, max_length=240)
+    dni: str | None = Field(default=None, max_length=32)
+    housing_situation: str | None = Field(default=None, max_length=2000)
+    residence_address: str | None = Field(default=None, max_length=500)
+    phone: str | None = Field(default=None, max_length=80)
+    contact_datetime: str | None = Field(default=None, max_length=80)
+    access_mode: str | None = Field(default=None, max_length=2000)
+    manifest_demand: str | None = Field(default=None, max_length=5000)
+    latent_demand: str | None = Field(default=None, max_length=5000)
+    affective_references: str | None = Field(default=None, max_length=5000)
+    household_structure: str | None = Field(default=None, max_length=5000)
+    literacy: str | None = Field(default=None, max_length=2000)
+    education_level: str | None = Field(default=None, max_length=2000)
+    employment_situation: str | None = Field(default=None, max_length=2000)
+    disability: str | None = Field(default=None, max_length=80)
+    disability_details: str | None = Field(default=None, max_length=2000)
+    health: str | None = Field(default=None, max_length=5000)
+    violence_present: str | None = Field(default=None, max_length=80)
+    violence_details: str | None = Field(default=None, max_length=3000)
+    legal_conflict: str | None = Field(default=None, max_length=2000)
+    rights_accessibility: str | None = Field(default=None, max_length=3000)
+    substance: str | None = Field(default=None, max_length=2000)
+    frequency: str | None = Field(default=None, max_length=1000)
+    medication_treatment: str | None = Field(default=None, max_length=3000)
+    consumption_observations: str | None = Field(default=None, max_length=3000)
+    previous_treatments: str | None = Field(default=None, max_length=5000)
+    first_response: str | None = Field(default=None, max_length=5000)
+    accompaniment_proposals: str | None = Field(default=None, max_length=3000)
+    participation_activities: str | None = Field(default=None, max_length=3000)
+    activity: str | None = Field(default=None, max_length=1000)
+    activity_day_time: str | None = Field(default=None, max_length=500)
+    activity_place: str | None = Field(default=None, max_length=500)
+    activity_referent: str | None = Field(default=None, max_length=500)
+    second_response: str | None = Field(default=None, max_length=5000)
+    follow_up_observations: str | None = Field(default=None, max_length=5000)
+
+
+class Contact(ContactInput):
+    id: int
+    created_at: str
+
+
 def get_connection() -> sqlite3.Connection:
     DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(DATABASE_PATH)
@@ -59,6 +108,17 @@ def initialize_database() -> None:
                 consultation TEXT NOT NULL,
                 referral TEXT,
                 created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS contacts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                full_name TEXT NOT NULL,
+                data_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
             )
             """
         )
@@ -176,5 +236,72 @@ def delete_record(record_id: int) -> Response:
     fetch_record(record_id)
     with closing(get_connection()) as connection:
         connection.execute("DELETE FROM records WHERE id = ?", (record_id,))
+        connection.commit()
+    return Response(status_code=204)
+
+
+def fetch_contact(contact_id: int) -> dict:
+    with closing(get_connection()) as connection:
+        row = connection.execute(
+            "SELECT id, data_json, created_at FROM contacts WHERE id = ?",
+            (contact_id,),
+        ).fetchone()
+    if row is None:
+        raise HTTPException(status_code=404, detail="No se encontró el primer contacto.")
+    return {**json.loads(row["data_json"]), "id": row["id"], "created_at": row["created_at"]}
+
+
+@app.get("/api/contacts", response_model=list[Contact])
+def list_contacts() -> list[dict]:
+    with closing(get_connection()) as connection:
+        rows = connection.execute(
+            "SELECT id, data_json, created_at FROM contacts ORDER BY id DESC"
+        ).fetchall()
+    return [
+        {**json.loads(row["data_json"]), "id": row["id"], "created_at": row["created_at"]}
+        for row in rows
+    ]
+
+
+@app.post("/api/contacts", response_model=Contact, status_code=201)
+def create_contact(contact: ContactInput) -> dict:
+    values = contact.model_dump(mode="json")
+    with closing(get_connection()) as connection:
+        cursor = connection.execute(
+            "INSERT INTO contacts (full_name, data_json) VALUES (?, ?)",
+            (values["full_name"], json.dumps(values, ensure_ascii=False)),
+        )
+        connection.commit()
+        contact_id = cursor.lastrowid
+    return fetch_contact(contact_id)
+
+
+@app.get("/api/contacts/{contact_id}", response_model=Contact)
+def get_contact(contact_id: int) -> dict:
+    return fetch_contact(contact_id)
+
+
+@app.put("/api/contacts/{contact_id}", response_model=Contact)
+def update_contact(contact_id: int, contact: ContactInput) -> dict:
+    fetch_contact(contact_id)
+    values = contact.model_dump(mode="json")
+    with closing(get_connection()) as connection:
+        connection.execute(
+            """
+            UPDATE contacts
+            SET full_name = ?, data_json = ?, updated_at = datetime('now')
+            WHERE id = ?
+            """,
+            (values["full_name"], json.dumps(values, ensure_ascii=False), contact_id),
+        )
+        connection.commit()
+    return fetch_contact(contact_id)
+
+
+@app.delete("/api/contacts/{contact_id}", status_code=204)
+def delete_contact(contact_id: int) -> Response:
+    fetch_contact(contact_id)
+    with closing(get_connection()) as connection:
+        connection.execute("DELETE FROM contacts WHERE id = ?", (contact_id,))
         connection.commit()
     return Response(status_code=204)

@@ -7,6 +7,10 @@
         <span>Área de acompañamiento</span>
       </span>
     </a>
+    <nav class="main-navigation" aria-label="Secciones del sistema">
+      <button type="button" [class.active]="currentPage === 'contact'" (click)="currentPage = 'contact'">Primer contacto</button>
+      <button type="button" [class.active]="currentPage === 'records'" (click)="currentPage = 'records'">Primera consulta</button>
+    </nav>
     <div class="topbar-meta">
       <span class="status-dot" aria-hidden="true"></span>
       <span>Sistema de atención</span>
@@ -14,6 +18,311 @@
   </header>
 
   <main>
+    @if (currentPage === 'contact') {
+      <section class="page-heading" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow">REGISTRO DE ATENCIÓN</p>
+          <h1 id="page-title">Primer contacto</h1>
+          <p class="page-intro">Datos para recibir, orientar y acompañar cada situación.</p>
+        </div>
+        <span class="privacy-note"><span aria-hidden="true">◇</span> Información confidencial</span>
+      </section>
+
+      <section class="panel contact-panel" aria-labelledby="contact-form-title">
+        <div class="panel-heading">
+          <div class="heading-icon" aria-hidden="true">＋</div>
+          <div>
+            <p class="eyebrow">FICHA DE ACOMPAÑAMIENTO</p>
+            <h2 id="contact-form-title">{{ editingContactId === null ? 'Nuevo primer contacto' : 'Editar primer contacto' }}</h2>
+          </div>
+        </div>
+
+        <div class="notice error-notice" role="alert" [hidden]="!contactErrorMessage">
+          <span aria-hidden="true">!</span>{{ contactErrorMessage }}
+        </div>
+        <div class="notice success-notice" role="status" [hidden]="!contactSuccessMessage">
+          <span aria-hidden="true">✓</span>{{ contactSuccessMessage }}
+        </div>
+
+        <form #contactFormRef="ngForm" (ngSubmit)="saveContact()">
+          <div class="contact-tabs" role="tablist" aria-label="Secciones del primer contacto">
+            @for (tab of contactTabs; track tab; let index = $index) {
+              <button
+                type="button"
+                role="tab"
+                class="contact-tab"
+                [class.selected]="activeContactTab === index"
+                [attr.aria-selected]="activeContactTab === index"
+                [attr.aria-controls]="'contact-panel-' + index"
+                [id]="'contact-tab-' + index"
+                (click)="activeContactTab = index">
+                <span class="tab-number">0{{ index + 1 }}</span>{{ tab }}
+              </button>
+            }
+          </div>
+
+          <div class="contact-tab-content" role="tabpanel" [attr.id]="'contact-panel-' + activeContactTab" [attr.aria-labelledby]="'contact-tab-' + activeContactTab">
+            @if (activeContactTab === 0) {
+              <div class="section-intro">
+                <h3>Datos personales</h3>
+                <p>Fecha y lugar de la entrevista e información de la persona.</p>
+              </div>
+              <div class="form-grid contact-form-grid">
+                <label class="field">
+                  <span>Fecha y lugar</span>
+                  <input type="text" name="date_and_place" [(ngModel)]="contactForm.date_and_place" placeholder="Fecha, localidad o sede" maxlength="240">
+                </label>
+                <label class="field">
+                  <span>Fecha de nacimiento</span>
+                  <input type="date" name="birth_date" [(ngModel)]="contactForm.birth_date">
+                </label>
+                <label class="field full-field">
+                  <span>Apellido y nombre <span class="required-mark">*</span></span>
+                  <input type="text" name="full_name" [(ngModel)]="contactForm.full_name" placeholder="Nombre completo" maxlength="160" autocomplete="name">
+                </label>
+                <label class="field">
+                  <span>Género con el que se autopercibe</span>
+                  <input type="text" name="self_perceived_gender" [(ngModel)]="contactForm.self_perceived_gender" maxlength="240">
+                </label>
+                <label class="field">
+                  <span>DNI</span>
+                  <input type="text" name="dni" [(ngModel)]="contactForm.dni" maxlength="32" inputmode="numeric">
+                </label>
+                <label class="field full-field">
+                  <span>Situación habitacional</span>
+                  <textarea name="housing_situation" [(ngModel)]="contactForm.housing_situation" rows="2" maxlength="2000"></textarea>
+                </label>
+                <label class="field">
+                  <span>Dirección de residencia</span>
+                  <input type="text" name="residence_address" [(ngModel)]="contactForm.residence_address" maxlength="500" autocomplete="street-address">
+                </label>
+                <label class="field">
+                  <span>Teléfono</span>
+                  <input type="tel" name="phone" [(ngModel)]="contactForm.phone" maxlength="80" autocomplete="tel">
+                </label>
+              </div>
+            }
+
+            @if (activeContactTab === 1) {
+              <div class="section-intro">
+                <h3>Primer contacto</h3>
+                <p>Motivos de consulta, vínculos y situación educativa y laboral.</p>
+              </div>
+              <div class="form-grid contact-form-grid">
+                <label class="field">
+                  <span>Fecha y hora</span>
+                  <input type="datetime-local" name="contact_datetime" [(ngModel)]="contactForm.contact_datetime">
+                </label>
+                <label class="field">
+                  <span>Modo de acceso al dispositivo</span>
+                  <input type="text" name="access_mode" [(ngModel)]="contactForm.access_mode" placeholder="¿Cómo conoció este servicio?" maxlength="2000">
+                </label>
+                <label class="field full-field">
+                  <span>Demanda manifiesta</span>
+                  <textarea name="manifest_demand" [(ngModel)]="contactForm.manifest_demand" placeholder="¿Qué situación percibe como problemática? ¿Quiénes lo acompañan? ¿Qué lo trae al espacio de escucha?" rows="3" maxlength="5000"></textarea>
+                </label>
+                <label class="field full-field">
+                  <span>Demanda latente</span>
+                  <textarea name="latent_demand" [(ngModel)]="contactForm.latent_demand" placeholder="Expresiones paraverbales y detalles que infieran una demanda no expresa." rows="3" maxlength="5000"></textarea>
+                </label>
+                <label class="field full-field">
+                  <span>Referentes afectivos</span>
+                  <textarea name="affective_references" [(ngModel)]="contactForm.affective_references" placeholder="Nombre completo, teléfono, dirección. ¿Tiene un/a mejor amigo/a?" rows="2" maxlength="5000"></textarea>
+                </label>
+                <label class="field full-field">
+                  <span>Estructura familiar / grupo conviviente</span>
+                  <textarea name="household_structure" [(ngModel)]="contactForm.household_structure" placeholder="Composición del grupo conviviente o genograma." rows="3" maxlength="5000"></textarea>
+                </label>
+                <label class="field">
+                  <span>Lecto-escritura</span>
+                  <textarea name="literacy" [(ngModel)]="contactForm.literacy" rows="2" maxlength="2000"></textarea>
+                </label>
+                <label class="field">
+                  <span>Nivel educativo alcanzado</span>
+                  <textarea name="education_level" [(ngModel)]="contactForm.education_level" rows="2" maxlength="2000"></textarea>
+                </label>
+                <label class="field full-field">
+                  <span>Situación laboral</span>
+                  <textarea name="employment_situation" [(ngModel)]="contactForm.employment_situation" rows="2" maxlength="2000"></textarea>
+                </label>
+              </div>
+            }
+
+            @if (activeContactTab === 2) {
+              <div class="section-intro">
+                <h3>Condiciones del primer contacto</h3>
+                <p>Registrar condiciones de salud, derechos y situaciones que requieran acompañamiento.</p>
+              </div>
+              <div class="form-grid contact-form-grid">
+                <label class="field">
+                  <span>¿Presenta discapacidad?</span>
+                  <select name="disability" [(ngModel)]="contactForm.disability">
+                    <option value="">Sin especificar</option>
+                    <option value="Sí">Sí</option>
+                    <option value="No">No</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>¿Cuál?</span>
+                  <input type="text" name="disability_details" [(ngModel)]="contactForm.disability_details" maxlength="2000">
+                </label>
+                <label class="field full-field">
+                  <span>Salud</span>
+                  <textarea name="health" [(ngModel)]="contactForm.health" placeholder="Problemáticas, tratamientos, controles, esquema de medicación y centro de salud más cercano." rows="4" maxlength="5000"></textarea>
+                </label>
+                <label class="field">
+                  <span>¿Presenta situaciones de violencia?</span>
+                  <select name="violence_present" [(ngModel)]="contactForm.violence_present">
+                    <option value="">Sin especificar</option>
+                    <option value="Sí">Sí</option>
+                    <option value="No">No</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Tipo / situación</span>
+                  <textarea name="violence_details" [(ngModel)]="contactForm.violence_details" placeholder="Ejerce o es víctima; física, psicológica, sexual, económica, simbólica, explotación..." rows="3" maxlength="3000"></textarea>
+                </label>
+                <label class="field full-field">
+                  <span>¿Presenta algún conflicto legal?</span>
+                  <textarea name="legal_conflict" [(ngModel)]="contactForm.legal_conflict" rows="2" maxlength="2000"></textarea>
+                </label>
+                <label class="field full-field">
+                  <span>¿Tiene algún problema de accesibilidad a derechos?</span>
+                  <textarea name="rights_accessibility" [(ngModel)]="contactForm.rights_accessibility" placeholder="Documentación, programas sociales, salud, educación..." rows="3" maxlength="3000"></textarea>
+                </label>
+              </div>
+            }
+
+            @if (activeContactTab === 3) {
+              <div class="section-intro">
+                <h3>Consumos y tratamientos</h3>
+                <p>Información sobre modalidades de consumo y experiencias de tratamiento.</p>
+              </div>
+              <div class="form-grid contact-form-grid">
+                <label class="field">
+                  <span>Sustancia / fármaco</span>
+                  <input type="text" name="substance" [(ngModel)]="contactForm.substance" maxlength="2000">
+                </label>
+                <label class="field">
+                  <span>Frecuencia</span>
+                  <input type="text" name="frequency" [(ngModel)]="contactForm.frequency" maxlength="1000">
+                </label>
+                <label class="field full-field">
+                  <span>¿Consume fármacos por tratamiento?</span>
+                  <textarea name="medication_treatment" [(ngModel)]="contactForm.medication_treatment" placeholder="¿Cuáles? ¿Bajo receta? ¿Médico prescriptor?" rows="3" maxlength="3000"></textarea>
+                </label>
+                <label class="field full-field">
+                  <span>Observaciones de la modalidad de consumo</span>
+                  <textarea name="consumption_observations" [(ngModel)]="contactForm.consumption_observations" rows="3" maxlength="3000"></textarea>
+                </label>
+                <label class="field full-field">
+                  <span>Tratamientos previos</span>
+                  <textarea name="previous_treatments" [(ngModel)]="contactForm.previous_treatments" placeholder="¿Realizó tratamientos previos? ¿Dónde? Percepciones acerca del mismo (autopercepción y capacidad de introspección)." rows="4" maxlength="5000"></textarea>
+                </label>
+              </div>
+            }
+
+            @if (activeContactTab === 4) {
+              <div class="section-intro">
+                <h3>Respuestas</h3>
+                <p>Acciones acordadas, actividades y seguimiento del contacto.</p>
+              </div>
+              <div class="form-grid contact-form-grid">
+                <label class="field full-field">
+                  <span>Primera respuesta</span>
+                  <textarea name="first_response" [(ngModel)]="contactForm.first_response" placeholder="Información específica, articulación con otro actor, comienzo del proceso de primera escucha o convocatoria a actividad/taller." rows="4" maxlength="5000"></textarea>
+                </label>
+                <label class="field full-field">
+                  <span>Propuestas de acompañamiento</span>
+                  <textarea name="accompaniment_proposals" [(ngModel)]="contactForm.accompaniment_proposals" placeholder="Sistema de apoyo, red comunitaria, acompañante par..." rows="3" maxlength="3000"></textarea>
+                </label>
+                <label class="field full-field">
+                  <span>Actividades de las que participará</span>
+                  <textarea name="participation_activities" [(ngModel)]="contactForm.participation_activities" rows="2" maxlength="3000"></textarea>
+                </label>
+                <div class="activity-fields full-field" aria-label="Detalle de actividad">
+                  <label class="field">
+                    <span>Actividad</span>
+                    <input type="text" name="activity" [(ngModel)]="contactForm.activity" maxlength="1000">
+                  </label>
+                  <label class="field">
+                    <span>Día y hora</span>
+                    <input type="text" name="activity_day_time" [(ngModel)]="contactForm.activity_day_time" maxlength="500">
+                  </label>
+                  <label class="field">
+                    <span>Lugar</span>
+                    <input type="text" name="activity_place" [(ngModel)]="contactForm.activity_place" maxlength="500">
+                  </label>
+                  <label class="field">
+                    <span>Referente</span>
+                    <input type="text" name="activity_referent" [(ngModel)]="contactForm.activity_referent" maxlength="500">
+                  </label>
+                </div>
+                <label class="field full-field">
+                  <span>Segunda respuesta</span>
+                  <textarea name="second_response" [(ngModel)]="contactForm.second_response" placeholder="Acudió al lugar, siguió en contacto con el equipo, interrumpió el contacto o continúa el proceso de primera escucha." rows="3" maxlength="5000"></textarea>
+                </label>
+                <label class="field full-field">
+                  <span>Observaciones de seguimiento</span>
+                  <textarea name="follow_up_observations" [(ngModel)]="contactForm.follow_up_observations" rows="3" maxlength="5000"></textarea>
+                </label>
+              </div>
+            }
+          </div>
+
+          <div class="contact-form-footer">
+            <span class="required-hint"><span class="required-mark">*</span> Apellido y nombre es obligatorio</span>
+            <div class="form-actions">
+              <button class="button button-quiet" type="button" (click)="resetContactForm()" [disabled]="isSavingContact">
+                {{ editingContactId === null ? 'Limpiar' : 'Cancelar edición' }}
+              </button>
+              @if (activeContactTab > 0) {
+                <button class="button button-quiet" type="button" (click)="activeContactTab = activeContactTab - 1">Anterior</button>
+              }
+              @if (activeContactTab < contactTabs.length - 1) {
+                <button class="button button-primary" type="button" (click)="activeContactTab = activeContactTab + 1">Siguiente <span aria-hidden="true">→</span></button>
+              } @else {
+                <button class="button button-primary" type="submit" [disabled]="isSavingContact || contactFormRef.pending">
+                  <span aria-hidden="true">{{ editingContactId === null ? '＋' : '✓' }}</span>
+                  {{ isSavingContact ? 'Guardando...' : editingContactId === null ? 'Guardar contacto' : 'Guardar cambios' }}
+                </button>
+              }
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <section class="contact-records" aria-labelledby="contacts-title">
+        <div class="list-heading">
+          <div>
+            <p class="eyebrow">SEGUIMIENTO</p>
+            <h2 id="contacts-title">Primeros contactos <span class="list-count">{{ contacts.length }}</span></h2>
+          </div>
+          <span class="list-date-note">Guardados en el sistema</span>
+        </div>
+        <div class="list-status" [hidden]="!isLoadingContacts" role="status">Cargando contactos...</div>
+        @if (!isLoadingContacts && contacts.length === 0) {
+          <div class="contacts-empty">Todavía no hay primeros contactos registrados.</div>
+        }
+        @if (contacts.length > 0) {
+          <div class="contact-record-list">
+            @for (contact of contacts; track contact.id) {
+              <article class="contact-record">
+                <div>
+                  <h3>{{ contact.full_name }}</h3>
+                  <p>{{ contact.date_and_place || 'Fecha y lugar sin especificar' }} <span aria-hidden="true">·</span> {{ contact.phone || 'Sin teléfono' }}</p>
+                </div>
+                <div class="record-actions">
+                  <button type="button" class="text-action" (click)="editContact(contact)" [disabled]="isDeletingContact">Editar</button>
+                  <span aria-hidden="true">·</span>
+                  <button type="button" class="text-action delete-action" (click)="deleteContact(contact)" [disabled]="isDeletingContact">Eliminar</button>
+                </div>
+              </article>
+            }
+          </div>
+        }
+      </section>
+    } @else {
     <section class="page-heading" aria-labelledby="page-title">
       <div>
         <p class="eyebrow">REGISTRO DE ATENCIÓN</p>
@@ -189,10 +498,11 @@
         </footer>
       </section>
     </div>
+    }
   </main>
 
   <footer class="site-footer">
     <span>Centro de Atención Comunitaria</span>
-    <span>Primera escucha <span aria-hidden="true">·</span> Registro interno</span>
+    <span>{{ currentPage === 'contact' ? 'Primer contacto' : 'Primera escucha' }} <span aria-hidden="true">·</span> Registro interno</span>
   </footer>
 </div>

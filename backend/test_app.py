@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 import app as records_app
 
 
-class RecordApiTests(unittest.TestCase):
+class ApiTestCase(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary_directory = tempfile.TemporaryDirectory()
         self.database_path = Path(self.temporary_directory.name) / "test.db"
@@ -22,6 +22,7 @@ class RecordApiTests(unittest.TestCase):
         self.database_patch.stop()
         self.temporary_directory.cleanup()
 
+class RecordApiTests(ApiTestCase):
     def create_record(self, **overrides: str) -> dict:
         payload = {
             "record_date": "2026-11-04",
@@ -77,6 +78,52 @@ class RecordApiTests(unittest.TestCase):
 
     def test_missing_record_returns_not_found(self) -> None:
         response = self.client.get("/api/records/999")
+        self.assertEqual(response.status_code, 404)
+
+
+class ContactApiTests(ApiTestCase):
+    def create_contact(self, **overrides: str) -> dict:
+        payload = {
+            "full_name": "Ana Pérez",
+            "date_and_place": "2026-11-04, Oberá",
+            "manifest_demand": "Solicita orientación para su familia.",
+            "activity": "Taller comunitario",
+        }
+        payload.update(overrides)
+        response = self.client.post("/api/contacts", json=payload)
+        self.assertEqual(response.status_code, 201)
+        return response.json()
+
+    def test_create_list_update_and_delete_contact(self) -> None:
+        contact = self.create_contact()
+        self.assertEqual(contact["full_name"], "Ana Pérez")
+        self.assertEqual(contact["manifest_demand"], "Solicita orientación para su familia.")
+
+        list_response = self.client.get("/api/contacts")
+        self.assertEqual([item["id"] for item in list_response.json()], [contact["id"]])
+
+        updated_response = self.client.put(
+            f"/api/contacts/{contact['id']}",
+            json={
+                "full_name": "Ana Pérez",
+                "phone": "3755-123456",
+                "manifest_demand": "Consulta actualizada.",
+            },
+        )
+        self.assertEqual(updated_response.status_code, 200)
+        self.assertEqual(updated_response.json()["phone"], "3755-123456")
+        self.assertEqual(updated_response.json()["activity"], None)
+
+        delete_response = self.client.delete(f"/api/contacts/{contact['id']}")
+        self.assertEqual(delete_response.status_code, 204)
+        self.assertEqual(self.client.get("/api/contacts").json(), [])
+
+    def test_rejects_contact_without_valid_name(self) -> None:
+        response = self.client.post("/api/contacts", json={"full_name": "A"})
+        self.assertEqual(response.status_code, 422)
+
+    def test_missing_contact_returns_not_found(self) -> None:
+        response = self.client.get("/api/contacts/999")
         self.assertEqual(response.status_code, 404)
 
 

@@ -2,6 +2,8 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ContactInput, ContactRecord } from './contact.model';
+import { ContactService } from './contact.service';
 import { ListeningRecord, RecordInput } from './record.model';
 import { RecordService } from './record.service';
 
@@ -25,8 +27,19 @@ interface RecordForm {
 })
 export class AppComponent implements OnInit {
   private readonly recordService = inject(RecordService);
+  private readonly contactService = inject(ContactService);
 
   records: ListeningRecord[] = [];
+  contacts: ContactRecord[] = [];
+  contactForm = this.emptyContactForm();
+  currentPage: 'contact' | 'records' = 'contact';
+  activeContactTab = 0;
+  editingContactId: number | null = null;
+  isLoadingContacts = false;
+  isSavingContact = false;
+  isDeletingContact = false;
+  contactErrorMessage = '';
+  contactSuccessMessage = '';
   form = this.emptyForm();
   search = '';
   selectedType: 'todas' | 'directa' | 'indirecta' = 'todas';
@@ -39,6 +52,17 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadRecords();
+    this.loadContacts();
+  }
+
+  get contactTabs(): string[] {
+    return [
+      'DATOS PERSONALES',
+      'PRIMER CONTACTO',
+      'CONDICIONES DEL PRIMER CONTACTO',
+      'CONSUMOS',
+      'RESPUESTAS',
+    ];
   }
 
   get visibleRecords(): ListeningRecord[] {
@@ -79,6 +103,100 @@ export class AppComponent implements OnInit {
         this.isLoading = false;
       },
     });
+  }
+
+  loadContacts(): void {
+    this.isLoadingContacts = true;
+    this.contactService.list().subscribe({
+      next: (contacts) => {
+        this.contacts = contacts;
+        this.isLoadingContacts = false;
+      },
+      error: (error: unknown) => {
+        this.contactErrorMessage = this.describeError(
+          error,
+          'No se pudieron cargar los primeros contactos.',
+        );
+        this.isLoadingContacts = false;
+      },
+    });
+  }
+
+  saveContact(): void {
+    if (this.contactForm.full_name.trim().length < 2) {
+      this.contactErrorMessage = 'Ingresá el apellido y nombre para guardar el contacto.';
+      this.activeContactTab = 0;
+      return;
+    }
+
+    this.isSavingContact = true;
+    this.contactErrorMessage = '';
+    this.contactSuccessMessage = '';
+    const payload: ContactInput = {
+      ...this.contactForm,
+      full_name: this.contactForm.full_name.trim(),
+    };
+    const request = this.editingContactId === null
+      ? this.contactService.create(payload)
+      : this.contactService.update(this.editingContactId, payload);
+
+    request.subscribe({
+      next: () => {
+        this.contactSuccessMessage = this.editingContactId === null
+          ? 'El primer contacto quedó registrado.'
+          : 'Los cambios del contacto se guardaron.';
+        this.resetContactForm();
+        this.loadContacts();
+        this.isSavingContact = false;
+      },
+      error: (error: unknown) => {
+        this.contactErrorMessage = this.describeError(error, 'No se pudo guardar el contacto.');
+        this.isSavingContact = false;
+      },
+    });
+  }
+
+  editContact(contact: ContactRecord): void {
+    this.editingContactId = contact.id;
+    this.contactForm = this.emptyContactForm();
+    for (const key of Object.keys(this.contactForm) as (keyof ContactInput)[]) {
+      this.contactForm[key] = contact[key] ?? '';
+    }
+    this.activeContactTab = 0;
+    this.contactErrorMessage = '';
+    this.contactSuccessMessage = '';
+    this.currentPage = 'contact';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  deleteContact(contact: ContactRecord): void {
+    if (!window.confirm(`¿Eliminar el primer contacto de ${contact.full_name}?`)) {
+      return;
+    }
+
+    this.isDeletingContact = true;
+    this.contactErrorMessage = '';
+    this.contactService.delete(contact.id).subscribe({
+      next: () => {
+        this.contacts = this.contacts.filter((item) => item.id !== contact.id);
+        if (this.editingContactId === contact.id) {
+          this.resetContactForm();
+        }
+        this.contactSuccessMessage = 'El primer contacto se eliminó.';
+        this.isDeletingContact = false;
+      },
+      error: (error: unknown) => {
+        this.contactErrorMessage = this.describeError(error, 'No se pudo eliminar el contacto.');
+        this.isDeletingContact = false;
+      },
+    });
+  }
+
+  resetContactForm(): void {
+    this.contactForm = this.emptyContactForm();
+    this.editingContactId = null;
+    this.activeContactTab = 0;
+    this.contactErrorMessage = '';
   }
 
   saveRecord(): void {
@@ -169,6 +287,49 @@ export class AppComponent implements OnInit {
       kinship: '',
       consultation: '',
       referral: '',
+    };
+  }
+
+  private emptyContactForm(): ContactInput {
+    return {
+      date_and_place: '',
+      full_name: '',
+      birth_date: '',
+      self_perceived_gender: '',
+      dni: '',
+      housing_situation: '',
+      residence_address: '',
+      phone: '',
+      contact_datetime: '',
+      access_mode: '',
+      manifest_demand: '',
+      latent_demand: '',
+      affective_references: '',
+      household_structure: '',
+      literacy: '',
+      education_level: '',
+      employment_situation: '',
+      disability: '',
+      disability_details: '',
+      health: '',
+      violence_present: '',
+      violence_details: '',
+      legal_conflict: '',
+      rights_accessibility: '',
+      substance: '',
+      frequency: '',
+      medication_treatment: '',
+      consumption_observations: '',
+      previous_treatments: '',
+      first_response: '',
+      accompaniment_proposals: '',
+      participation_activities: '',
+      activity: '',
+      activity_day_time: '',
+      activity_place: '',
+      activity_referent: '',
+      second_response: '',
+      follow_up_observations: '',
     };
   }
 
