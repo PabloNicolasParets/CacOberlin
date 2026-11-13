@@ -8,7 +8,7 @@
       </span>
     </a>
     <nav class="main-navigation" aria-label="Secciones del sistema">
-      <button type="button" [class.active]="currentPage === 'contact'" (click)="currentPage = 'contact'">Primer contacto</button>
+      <button type="button" [class.active]="currentPage === 'contact'" (click)="showContactList()">Primer contacto</button>
       <button type="button" [class.active]="currentPage === 'records'" (click)="currentPage = 'records'">Primera consulta</button>
     </nav>
     <div class="topbar-meta">
@@ -28,46 +28,47 @@
         <span class="privacy-note"><span aria-hidden="true">◇</span> Información confidencial</span>
       </section>
 
-      <section class="panel contact-panel" aria-labelledby="contact-form-title">
-        <div class="panel-heading">
-          <div class="heading-icon" aria-hidden="true">＋</div>
-          <div>
-            <p class="eyebrow">FICHA DE ACOMPAÑAMIENTO</p>
-            <h2 id="contact-form-title">{{ editingContactId === null ? 'Nuevo primer contacto' : 'Editar primer contacto' }}</h2>
-          </div>
-        </div>
-
-        <div class="notice error-notice" role="alert" [hidden]="!contactErrorMessage">
-          <span aria-hidden="true">!</span>{{ contactErrorMessage }}
-        </div>
-        <div class="notice success-notice" role="status" [hidden]="!contactSuccessMessage">
-          <span aria-hidden="true">✓</span>{{ contactSuccessMessage }}
-        </div>
-
-        <form #contactFormRef="ngForm" (ngSubmit)="saveContact()">
-          <div class="contact-tabs" role="tablist" aria-label="Secciones del primer contacto">
-            @for (tab of contactTabs; track tab; let index = $index) {
-              <button
-                type="button"
-                role="tab"
-                class="contact-tab"
-                [class.selected]="activeContactTab === index"
-                [attr.aria-selected]="activeContactTab === index"
-                [attr.aria-controls]="'contact-panel-' + index"
-                [id]="'contact-tab-' + index"
-                (click)="activeContactTab = index">
-                <span class="tab-number">0{{ index + 1 }}</span>{{ tab }}
-              </button>
-            }
+      @if (contactView === 'form') {
+        <section class="panel contact-panel" aria-labelledby="contact-form-title">
+          <div class="panel-heading">
+            <div class="heading-icon" aria-hidden="true">＋</div>
+            <div>
+              <p class="eyebrow">FICHA DE ACOMPAÑAMIENTO</p>
+              <h2 id="contact-form-title">{{ editingContactId === null ? 'Nuevo primer contacto' : 'Editar primer contacto' }}</h2>
+            </div>
           </div>
 
-          <div class="contact-tab-content" role="tabpanel" [attr.id]="'contact-panel-' + activeContactTab" [attr.aria-labelledby]="'contact-tab-' + activeContactTab">
-            @if (activeContactTab === 0) {
-              <div class="section-intro">
-                <h3>Datos personales</h3>
-                <p>Fecha y lugar de la entrevista e información de la persona.</p>
-              </div>
-              <div class="form-grid contact-form-grid">
+          <div class="notice error-notice" role="alert" [hidden]="!contactErrorMessage">
+            <span aria-hidden="true">!</span>{{ contactErrorMessage }}
+          </div>
+          <div class="notice success-notice" role="status" [hidden]="!contactSuccessMessage">
+            <span aria-hidden="true">✓</span>{{ contactSuccessMessage }}
+          </div>
+
+          <form #contactFormRef="ngForm" (ngSubmit)="saveContact()">
+            <div class="contact-tabs" role="tablist" aria-label="Secciones del primer contacto">
+              @for (tab of contactTabs; track tab; let index = $index) {
+                <button
+                  type="button"
+                  role="tab"
+                  class="contact-tab"
+                  [class.selected]="activeContactTab === index"
+                  [attr.aria-selected]="activeContactTab === index"
+                  [attr.aria-controls]="'contact-panel-' + index"
+                  [id]="'contact-tab-' + index"
+                  (click)="activeContactTab = index">
+                  <span class="tab-number">0{{ index + 1 }}</span>{{ tab }}
+                </button>
+              }
+            </div>
+
+            <div class="contact-tab-content" role="tabpanel" [attr.id]="'contact-panel-' + activeContactTab" [attr.aria-labelledby]="'contact-tab-' + activeContactTab">
+              @if (activeContactTab === 0) {
+                <div class="section-intro">
+                  <h3>Datos personales</h3>
+                  <p>Fecha y lugar de la entrevista e información de la persona.</p>
+                </div>
+                <div class="form-grid contact-form-grid">
                 <label class="field">
                   <span>Fecha y lugar</span>
                   <input type="text" name="date_and_place" [(ngModel)]="contactForm.date_and_place" placeholder="Fecha, localidad o sede" maxlength="240">
@@ -100,8 +101,8 @@
                   <span>Teléfono</span>
                   <input type="tel" name="phone" [(ngModel)]="contactForm.phone" maxlength="80" autocomplete="tel">
                 </label>
-              </div>
-            }
+                </div>
+              }
 
             @if (activeContactTab === 1) {
               <div class="section-intro">
@@ -270,58 +271,93 @@
             }
           </div>
 
-          <div class="contact-form-footer">
-            <span class="required-hint"><span class="required-mark">*</span> Apellido y nombre es obligatorio</span>
-            <div class="form-actions">
-              <button class="button button-quiet" type="button" (click)="resetContactForm()" [disabled]="isSavingContact">
-                {{ editingContactId === null ? 'Limpiar' : 'Cancelar edición' }}
-              </button>
-              @if (activeContactTab > 0) {
-                <button class="button button-quiet" type="button" (click)="activeContactTab = activeContactTab - 1">Anterior</button>
-              }
-              @if (activeContactTab < contactTabs.length - 1) {
-                <button class="button button-primary" type="button" (click)="activeContactTab = activeContactTab + 1">Siguiente <span aria-hidden="true">→</span></button>
-              } @else {
-                <button class="button button-primary" type="submit" [disabled]="isSavingContact || contactFormRef.pending">
-                  <span aria-hidden="true">{{ editingContactId === null ? '＋' : '✓' }}</span>
-                  {{ isSavingContact ? 'Guardando...' : editingContactId === null ? 'Guardar contacto' : 'Guardar cambios' }}
+            <div class="contact-form-footer">
+              <span class="required-hint"><span class="required-mark">*</span> Apellido y nombre es obligatorio</span>
+              <div class="form-actions">
+                <button class="button button-quiet" type="button" (click)="showContactList()" [disabled]="isSavingContact">
+                  Volver al listado
                 </button>
+                @if (activeContactTab > 0) {
+                  <button class="button button-quiet" type="button" (click)="activeContactTab = activeContactTab - 1">Anterior</button>
+                }
+                @if (activeContactTab < contactTabs.length - 1) {
+                  <button class="button button-primary" type="button" (click)="activeContactTab = activeContactTab + 1">Siguiente <span aria-hidden="true">→</span></button>
+                } @else {
+                  <button class="button button-primary" type="submit" [disabled]="isSavingContact || contactFormRef.pending">
+                    <span aria-hidden="true">{{ editingContactId === null ? '＋' : '✓' }}</span>
+                    {{ isSavingContact ? 'Guardando...' : editingContactId === null ? 'Guardar contacto' : 'Guardar cambios' }}
+                  </button>
+                }
+              </div>
+            </div>
+          </form>
+        </section>
+      } @else {
+        <section class="panel contact-panel contact-list-panel contact-records" aria-labelledby="contacts-title">
+          <div class="list-heading">
+            <div>
+              <p class="eyebrow">SEGUIMIENTO</p>
+              <h2 id="contacts-title">Primeros contactos <span class="list-count">{{ contacts.length }}</span></h2>
+            </div>
+            <button type="button" class="button button-primary" (click)="newContact()">
+              <span aria-hidden="true">＋</span> Nuevo
+            </button>
+          </div>
+          <div class="notice error-notice" role="alert" [hidden]="!contactErrorMessage">
+            <span aria-hidden="true">!</span>{{ contactErrorMessage }}
+          </div>
+          <div class="notice success-notice" role="status" [hidden]="!contactSuccessMessage">
+            <span aria-hidden="true">✓</span>{{ contactSuccessMessage }}
+          </div>
+          <div class="contact-filter-bar" role="search" aria-label="Filtrar primeros contactos">
+            <label class="field">
+              <span>Buscar por nombre</span>
+              <input
+                type="search"
+                name="contactNameFilter"
+                [(ngModel)]="contactNameFilter"
+                placeholder="Escribí un nombre"
+                autocomplete="off">
+            </label>
+            <label class="field">
+              <span>Fecha del contacto</span>
+              <input type="date" name="contactDateFilter" [(ngModel)]="contactDateFilter">
+            </label>
+            @if (hasContactFilters) {
+              <button type="button" class="button button-quiet" (click)="clearContactFilters()">
+                Limpiar filtros
+              </button>
+            }
+            <p class="contact-filter-summary" aria-live="polite">
+              {{ visibleContacts.length }} {{ visibleContacts.length === 1 ? 'resultado' : 'resultados' }}
+            </p>
+          </div>
+          <div class="list-status" [hidden]="!isLoadingContacts" role="status">Cargando contactos...</div>
+          @if (!isLoadingContacts && contacts.length === 0) {
+            <div class="contacts-empty">Todavía no hay primeros contactos registrados.</div>
+          }
+          @if (!isLoadingContacts && contacts.length > 0 && visibleContacts.length === 0) {
+            <div class="contacts-empty">No hay contactos que coincidan con los filtros.</div>
+          }
+          @if (visibleContacts.length > 0) {
+            <div class="contact-record-list">
+              @for (contact of visibleContacts; track contact.id) {
+                <article class="contact-record">
+                  <div>
+                    <h3>{{ contact.full_name }}</h3>
+                    <p>{{ contact.date_and_place || 'Fecha y lugar sin especificar' }} <span aria-hidden="true">·</span> {{ contact.phone || 'Sin teléfono' }}</p>
+                  </div>
+                  <div class="record-actions">
+                    <button type="button" class="text-action" (click)="editContact(contact)" [disabled]="isDeletingContact">Editar</button>
+                    <span aria-hidden="true">·</span>
+                    <button type="button" class="text-action delete-action" (click)="deleteContact(contact)" [disabled]="isDeletingContact">Eliminar</button>
+                  </div>
+                </article>
               }
             </div>
-          </div>
-        </form>
-      </section>
-
-      <section class="contact-records" aria-labelledby="contacts-title">
-        <div class="list-heading">
-          <div>
-            <p class="eyebrow">SEGUIMIENTO</p>
-            <h2 id="contacts-title">Primeros contactos <span class="list-count">{{ contacts.length }}</span></h2>
-          </div>
-          <span class="list-date-note">Guardados en el sistema</span>
-        </div>
-        <div class="list-status" [hidden]="!isLoadingContacts" role="status">Cargando contactos...</div>
-        @if (!isLoadingContacts && contacts.length === 0) {
-          <div class="contacts-empty">Todavía no hay primeros contactos registrados.</div>
-        }
-        @if (contacts.length > 0) {
-          <div class="contact-record-list">
-            @for (contact of contacts; track contact.id) {
-              <article class="contact-record">
-                <div>
-                  <h3>{{ contact.full_name }}</h3>
-                  <p>{{ contact.date_and_place || 'Fecha y lugar sin especificar' }} <span aria-hidden="true">·</span> {{ contact.phone || 'Sin teléfono' }}</p>
-                </div>
-                <div class="record-actions">
-                  <button type="button" class="text-action" (click)="editContact(contact)" [disabled]="isDeletingContact">Editar</button>
-                  <span aria-hidden="true">·</span>
-                  <button type="button" class="text-action delete-action" (click)="deleteContact(contact)" [disabled]="isDeletingContact">Eliminar</button>
-                </div>
-              </article>
-            }
-          </div>
-        }
-      </section>
+          }
+        </section>
+      }
     } @else {
     <section class="page-heading" aria-labelledby="page-title">
       <div>

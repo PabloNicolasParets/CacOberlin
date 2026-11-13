@@ -33,6 +33,9 @@ export class AppComponent implements OnInit {
   contacts: ContactRecord[] = [];
   contactForm = this.emptyContactForm();
   currentPage: 'contact' | 'records' = 'contact';
+  contactView: 'list' | 'form' = 'list';
+  contactNameFilter = '';
+  contactDateFilter = '';
   activeContactTab = 0;
   editingContactId: number | null = null;
   isLoadingContacts = false;
@@ -88,6 +91,26 @@ export class AppComponent implements OnInit {
 
   get indirectCount(): number {
     return this.records.filter((record) => record.consult_type === 'indirecta').length;
+  }
+
+  get visibleContacts(): ContactRecord[] {
+    const name = this.contactNameFilter.trim().toLocaleLowerCase('es');
+    return this.contacts.filter((contact) => {
+      const matchesName = (contact.full_name ?? '').toLocaleLowerCase('es').includes(name);
+      const matchesDate =
+        !this.contactDateFilter ||
+        contact.contact_datetime?.slice(0, 10) === this.contactDateFilter;
+      return matchesName && matchesDate;
+    });
+  }
+
+  get hasContactFilters(): boolean {
+    return Boolean(this.contactNameFilter.trim() || this.contactDateFilter);
+  }
+
+  clearContactFilters(): void {
+    this.contactNameFilter = '';
+    this.contactDateFilter = '';
   }
 
   loadRecords(): void {
@@ -146,6 +169,7 @@ export class AppComponent implements OnInit {
           ? 'El primer contacto quedó registrado.'
           : 'Los cambios del contacto se guardaron.';
         this.resetContactForm();
+        this.contactView = 'list';
         this.loadContacts();
         this.isSavingContact = false;
       },
@@ -158,6 +182,7 @@ export class AppComponent implements OnInit {
 
   editContact(contact: ContactRecord): void {
     this.editingContactId = contact.id;
+    this.contactView = 'form';
     this.contactForm = this.emptyContactForm();
     for (const key of Object.keys(this.contactForm) as (keyof ContactInput)[]) {
       this.contactForm[key] = contact[key] ?? '';
@@ -166,6 +191,21 @@ export class AppComponent implements OnInit {
     this.contactErrorMessage = '';
     this.contactSuccessMessage = '';
     this.currentPage = 'contact';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  newContact(): void {
+    this.resetContactForm();
+    this.contactSuccessMessage = '';
+    this.contactView = 'form';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  showContactList(): void {
+    this.resetContactForm();
+    this.contactSuccessMessage = '';
+    this.currentPage = 'contact';
+    this.contactView = 'list';
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
