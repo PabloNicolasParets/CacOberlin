@@ -1,3 +1,4 @@
+from contextlib import closing
 import tempfile
 import unittest
 from pathlib import Path
@@ -93,6 +94,42 @@ class ContactApiTests(ApiTestCase):
         response = self.client.post("/api/contacts", json=payload)
         self.assertEqual(response.status_code, 201)
         return response.json()
+
+    def test_migrates_contacts_table_without_losing_records(self) -> None:
+        with closing(records_app.get_connection()) as connection:
+            connection.execute('DROP TABLE "primerContacto"')
+            connection.execute(
+                """
+                CREATE TABLE contacts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    full_name TEXT NOT NULL,
+                    data_json TEXT NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+                )
+                """
+            )
+            connection.execute(
+                "INSERT INTO contacts (full_name, data_json) VALUES (?, ?)",
+                ("Ana Pérez", '{"full_name":"Ana Pérez"}'),
+            )
+            connection.commit()
+
+        records_app.initialize_database()
+
+        with closing(records_app.get_connection()) as connection:
+            table_names = {
+                row["name"]
+                for row in connection.execute(
+                    "SELECT name FROM sqlite_master WHERE type = 'table'"
+                ).fetchall()
+            }
+        self.assertIn("primerContacto", table_names)
+        self.assertNotIn("contacts", table_names)
+
+        response = self.client.get("/api/contacts")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()[0]["full_name"], "Ana Pérez")
 
     def test_create_list_update_and_delete_contact(self) -> None:
         contact = self.create_contact()

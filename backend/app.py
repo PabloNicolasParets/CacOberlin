@@ -111,9 +111,21 @@ def initialize_database() -> None:
             )
             """
         )
+        tables = {
+            row["name"]
+            for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table'"
+            ).fetchall()
+        }
+        if "contacts" in tables and "primerContacto" in tables:
+            raise RuntimeError(
+                "No se puede renombrar contacts: contacts y primerContacto existen."
+            )
+        if "contacts" in tables:
+            connection.execute('ALTER TABLE contacts RENAME TO "primerContacto"')
         connection.execute(
             """
-            CREATE TABLE IF NOT EXISTS contacts (
+            CREATE TABLE IF NOT EXISTS "primerContacto" (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 full_name TEXT NOT NULL,
                 data_json TEXT NOT NULL,
@@ -243,7 +255,7 @@ def delete_record(record_id: int) -> Response:
 def fetch_contact(contact_id: int) -> dict:
     with closing(get_connection()) as connection:
         row = connection.execute(
-            "SELECT id, data_json, created_at FROM contacts WHERE id = ?",
+            'SELECT id, data_json, created_at FROM "primerContacto" WHERE id = ?',
             (contact_id,),
         ).fetchone()
     if row is None:
@@ -255,7 +267,7 @@ def fetch_contact(contact_id: int) -> dict:
 def list_contacts() -> list[dict]:
     with closing(get_connection()) as connection:
         rows = connection.execute(
-            "SELECT id, data_json, created_at FROM contacts ORDER BY id DESC"
+            'SELECT id, data_json, created_at FROM "primerContacto" ORDER BY id DESC'
         ).fetchall()
     return [
         {**json.loads(row["data_json"]), "id": row["id"], "created_at": row["created_at"]}
@@ -268,7 +280,7 @@ def create_contact(contact: ContactInput) -> dict:
     values = contact.model_dump(mode="json")
     with closing(get_connection()) as connection:
         cursor = connection.execute(
-            "INSERT INTO contacts (full_name, data_json) VALUES (?, ?)",
+            'INSERT INTO "primerContacto" (full_name, data_json) VALUES (?, ?)',
             (values["full_name"], json.dumps(values, ensure_ascii=False)),
         )
         connection.commit()
@@ -288,7 +300,7 @@ def update_contact(contact_id: int, contact: ContactInput) -> dict:
     with closing(get_connection()) as connection:
         connection.execute(
             """
-            UPDATE contacts
+            UPDATE "primerContacto"
             SET full_name = ?, data_json = ?, updated_at = datetime('now')
             WHERE id = ?
             """,
@@ -302,6 +314,8 @@ def update_contact(contact_id: int, contact: ContactInput) -> dict:
 def delete_contact(contact_id: int) -> Response:
     fetch_contact(contact_id)
     with closing(get_connection()) as connection:
-        connection.execute("DELETE FROM contacts WHERE id = ?", (contact_id,))
+        connection.execute(
+            'DELETE FROM "primerContacto" WHERE id = ?', (contact_id,)
+        )
         connection.commit()
     return Response(status_code=204)
