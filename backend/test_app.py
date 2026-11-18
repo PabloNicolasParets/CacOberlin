@@ -40,6 +40,50 @@ class RecordApiTests(ApiTestCase):
         self.assertEqual(response.status_code, 201)
         return response.json()
 
+    def test_migrates_records_table_without_losing_records(self) -> None:
+        with closing(records_app.get_connection()) as connection:
+            connection.execute('DROP TABLE "PrimeraConsulta"')
+            connection.execute(
+                """
+                CREATE TABLE records (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    record_date TEXT NOT NULL,
+                    consult_type TEXT NOT NULL CHECK (consult_type IN ('directa', 'indirecta')),
+                    full_name TEXT NOT NULL,
+                    address TEXT,
+                    dni TEXT,
+                    kinship TEXT,
+                    consultation TEXT NOT NULL,
+                    referral TEXT,
+                    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+                )
+                """
+            )
+            connection.execute(
+                """
+                INSERT INTO records
+                    (record_date, consult_type, full_name, consultation)
+                VALUES ('2026-11-04', 'directa', 'Ana Pérez', 'Solicita orientación.')
+                """,
+            )
+            connection.commit()
+
+        records_app.initialize_database()
+
+        with closing(records_app.get_connection()) as connection:
+            table_names = {
+                row["name"]
+                for row in connection.execute(
+                    "SELECT name FROM sqlite_master WHERE type = 'table'"
+                ).fetchall()
+            }
+        self.assertIn("PrimeraConsulta", table_names)
+        self.assertNotIn("records", table_names)
+
+        response = self.client.get("/api/records")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()[0]["full_name"], "Ana Pérez")
+
     def test_create_search_update_and_delete_record(self) -> None:
         record = self.create_record()
         self.assertEqual(record["full_name"], "Ana Pérez")
@@ -162,6 +206,43 @@ class ContactApiTests(ApiTestCase):
     def test_missing_contact_returns_not_found(self) -> None:
         response = self.client.get("/api/contacts/999")
         self.assertEqual(response.status_code, 404)
+
+
+class ResidenceApiTests(ApiTestCase):
+    def test_create_list_and_update_residence(self) -> None:
+        payload = {
+            "nombre_querido": "Casa Esperanza",
+            "direccion": "Calle 123, Oberá",
+            "ocupacion": "Alojamiento transitorio",
+            "capacidad": 12,
+        }
+        created_response = self.client.post("/api/residences", json=payload)
+        self.assertEqual(created_response.status_code, 201)
+        residence = created_response.json()
+        self.assertEqual(residence["nombre_querido"], "Casa Esperanza")
+
+        list_response = self.client.get("/api/residences")
+        self.assertEqual([item["id"] for item in list_response.json()], [residence["id"]])
+
+        payload["capacidad"] = 15
+        updated_response = self.client.put(
+            f"/api/residences/{residence['id']}",
+            json=payload,
+        )
+        self.assertEqual(updated_response.status_code, 200)
+        self.assertEqual(updated_response.json()["capacidad"], 15)
+
+    def test_rejects_residence_with_invalid_capacity(self) -> None:
+        response = self.client.post(
+            "/api/residences",
+            json={
+                "nombre_querido": "Casa Esperanza",
+                "direccion": "Calle 123",
+                "ocupacion": "Alojamiento transitorio",
+                "capacidad": 0,
+            },
+        )
+        self.assertEqual(response.status_code, 422)
 
 
 if __name__ == "__main__":

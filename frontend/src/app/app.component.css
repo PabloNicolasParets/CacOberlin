@@ -25,6 +25,103 @@
   border-bottom-color: #3d7b5b;
 }
 
+.navigation-menu {
+  position: relative;
+  align-self: stretch;
+}
+
+.navigation-menu > button span {
+  margin-left: 4px;
+  font-size: 13px;
+}
+
+.navigation-submenu {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% - 1px);
+  right: 0;
+  min-width: 150px;
+  padding: 5px;
+  border: 1px solid #e8ebe6;
+  border-radius: 0 0 9px 9px;
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(29, 49, 37, .1);
+}
+
+.main-navigation .navigation-submenu button {
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+}
+
+.main-navigation .navigation-submenu button:hover,
+.main-navigation .navigation-submenu button.active {
+  background: #f1f6f1;
+}
+
+.residences-grid {
+  display: grid;
+  grid-template-columns: minmax(300px, .8fr) minmax(420px, 1.2fr);
+  align-items: start;
+  gap: 19px;
+}
+
+.residence-form-panel {
+  padding: 23px 24px 20px;
+}
+
+.residence-list-panel {
+  min-width: 0;
+  padding: 23px 22px 0;
+}
+
+.residence-list {
+  max-height: 610px;
+  overflow-y: auto;
+}
+
+.residence-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px 2px;
+  border-top: 1px solid #eff1ed;
+}
+
+.residence-details {
+  min-width: 0;
+}
+
+.residence-details h3 {
+  margin: 0 0 7px;
+  color: #33483c;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.residence-details p {
+  margin: 4px 0 0;
+  color: #77847b;
+  font-size: 10px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.residence-details p span {
+  color: #98a29a;
+  font-weight: 600;
+}
+
+.residence-item > .text-action {
+  flex: 0 0 auto;
+  padding-top: 2px;
+}
+
 .contact-panel {
   padding: 23px 26px 20px;
 }
@@ -278,11 +375,23 @@
     padding-right: 18px;
     padding-left: 18px;
   }
+
+  .residences-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 620px) {
   .contact-panel {
     padding: 18px 14px 15px;
+  }
+
+  .residence-form-panel {
+    padding: 18px 14px 15px;
+  }
+
+  .page-heading > .button {
+    flex: 0 0 auto;
   }
 
   .contact-tab-content {

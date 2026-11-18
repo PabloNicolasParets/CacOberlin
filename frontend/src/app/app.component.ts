@@ -6,6 +6,8 @@ import { ContactInput, ContactRecord } from './contact.model';
 import { ContactService } from './contact.service';
 import { ListeningRecord, RecordInput } from './record.model';
 import { RecordService } from './record.service';
+import { Residence, ResidenceInput } from './residence.model';
+import { ResidenceService } from './residence.service';
 
 interface RecordForm {
   record_date: string;
@@ -28,11 +30,15 @@ interface RecordForm {
 export class AppComponent implements OnInit {
   private readonly recordService = inject(RecordService);
   private readonly contactService = inject(ContactService);
+  private readonly residenceService = inject(ResidenceService);
 
   records: ListeningRecord[] = [];
   contacts: ContactRecord[] = [];
+  residences: Residence[] = [];
   contactForm = this.emptyContactForm();
-  currentPage: 'contact' | 'records' = 'contact';
+  residenceForm = this.emptyResidenceForm();
+  currentPage: 'contact' | 'records' | 'residences' = 'contact';
+  maintenanceMenuOpen = false;
   contactView: 'list' | 'form' = 'list';
   contactNameFilter = '';
   contactDateFilter = '';
@@ -43,6 +49,11 @@ export class AppComponent implements OnInit {
   isDeletingContact = false;
   contactErrorMessage = '';
   contactSuccessMessage = '';
+  editingResidenceId: number | null = null;
+  isLoadingResidences = false;
+  isSavingResidence = false;
+  residenceErrorMessage = '';
+  residenceSuccessMessage = '';
   form = this.emptyForm();
   search = '';
   selectedType: 'todas' | 'directa' | 'indirecta' = 'todas';
@@ -56,6 +67,7 @@ export class AppComponent implements OnInit {
   ngOnInit(): void {
     this.loadRecords();
     this.loadContacts();
+    this.loadResidences();
   }
 
   get contactTabs(): string[] {
@@ -143,6 +155,89 @@ export class AppComponent implements OnInit {
         this.isLoadingContacts = false;
       },
     });
+  }
+
+  loadResidences(): void {
+    this.isLoadingResidences = true;
+    this.residenceErrorMessage = '';
+    this.residenceService.list().subscribe({
+      next: (residences) => {
+        this.residences = residences;
+        this.isLoadingResidences = false;
+      },
+      error: (error: unknown) => {
+        this.residenceErrorMessage = this.describeError(
+          error,
+          'No se pudieron cargar las residencias.',
+        );
+        this.isLoadingResidences = false;
+      },
+    });
+  }
+
+  openResidences(): void {
+    this.currentPage = 'residences';
+    this.maintenanceMenuOpen = false;
+    this.residenceSuccessMessage = '';
+    this.loadResidences();
+  }
+
+  editResidence(residence: Residence): void {
+    this.editingResidenceId = residence.id;
+    this.residenceForm = {
+      nombre_querido: residence.nombre_querido,
+      direccion: residence.direccion,
+      ocupacion: residence.ocupacion,
+      capacidad: residence.capacidad,
+    };
+    this.residenceErrorMessage = '';
+    this.residenceSuccessMessage = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  newResidence(): void {
+    this.resetResidenceForm();
+    this.residenceSuccessMessage = '';
+  }
+
+  saveResidence(): void {
+    this.isSavingResidence = true;
+    this.residenceErrorMessage = '';
+    this.residenceSuccessMessage = '';
+    const payload: ResidenceInput = {
+      ...this.residenceForm,
+      nombre_querido: this.residenceForm.nombre_querido.trim(),
+      direccion: this.residenceForm.direccion.trim(),
+      ocupacion: this.residenceForm.ocupacion.trim(),
+    };
+    const request = this.editingResidenceId === null
+      ? this.residenceService.create(payload)
+      : this.residenceService.update(this.editingResidenceId, payload);
+
+    request.subscribe({
+      next: (residence) => {
+        this.residences = [
+          ...this.residences.filter((item) => item.id !== residence.id),
+          residence,
+        ].sort((first, second) =>
+          first.nombre_querido.localeCompare(second.nombre_querido, 'es'),
+        );
+        this.residenceSuccessMessage = this.editingResidenceId === null
+          ? 'La residencia quedó registrada.'
+          : 'Los cambios de la residencia se guardaron.';
+        this.resetResidenceForm();
+        this.isSavingResidence = false;
+      },
+      error: (error: unknown) => {
+        this.residenceErrorMessage = this.describeError(error, 'No se pudo guardar la residencia.');
+        this.isSavingResidence = false;
+      },
+    });
+  }
+
+  resetResidenceForm(): void {
+    this.residenceForm = this.emptyResidenceForm();
+    this.editingResidenceId = null;
   }
 
   saveContact(): void {
@@ -327,6 +422,15 @@ export class AppComponent implements OnInit {
       kinship: '',
       consultation: '',
       referral: '',
+    };
+  }
+
+  private emptyResidenceForm(): ResidenceInput {
+    return {
+      nombre_querido: '',
+      direccion: '',
+      ocupacion: '',
+      capacidad: 1,
     };
   }
 

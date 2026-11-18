@@ -10,6 +10,21 @@
     <nav class="main-navigation" aria-label="Secciones del sistema">
       <button type="button" [class.active]="currentPage === 'contact'" (click)="showContactList()">Primer contacto</button>
       <button type="button" [class.active]="currentPage === 'records'" (click)="currentPage = 'records'">Primera consulta</button>
+      <div class="navigation-menu">
+        <button
+          type="button"
+          [class.active]="currentPage === 'residences'"
+          [attr.aria-expanded]="maintenanceMenuOpen"
+          aria-haspopup="true"
+          (click)="maintenanceMenuOpen = !maintenanceMenuOpen">
+          Mantenimiento <span aria-hidden="true">⌄</span>
+        </button>
+        @if (maintenanceMenuOpen) {
+          <div class="navigation-submenu">
+            <button type="button" [class.active]="currentPage === 'residences'" (click)="openResidences()">Residencias</button>
+          </div>
+        }
+      </div>
     </nav>
     <div class="topbar-meta">
       <span class="status-dot" aria-hidden="true"></span>
@@ -358,7 +373,7 @@
           }
         </section>
       }
-    } @else {
+    } @else if (currentPage === 'records') {
     <section class="page-heading" aria-labelledby="page-title">
       <div>
         <p class="eyebrow">REGISTRO DE ATENCIÓN</p>
@@ -534,11 +549,109 @@
         </footer>
       </section>
     </div>
+    } @else {
+      <section class="page-heading" aria-labelledby="residences-title">
+        <div>
+          <p class="eyebrow">MANTENIMIENTO</p>
+          <h1 id="residences-title">Residencias</h1>
+          <p class="page-intro">Administrá los datos y la capacidad de las residencias.</p>
+        </div>
+        <button class="button button-primary" type="button" (click)="newResidence()">
+          <span aria-hidden="true">＋</span> Nueva residencia
+        </button>
+      </section>
+
+      <div class="residences-grid">
+        <section class="panel residence-form-panel" aria-labelledby="residence-form-title">
+          <div class="panel-heading">
+            <div class="heading-icon" aria-hidden="true">⌂</div>
+            <div>
+              <p class="eyebrow">DATOS DE LA RESIDENCIA</p>
+              <h2 id="residence-form-title">{{ editingResidenceId === null ? 'Nueva residencia' : 'Modificar residencia' }}</h2>
+            </div>
+          </div>
+
+          <div class="notice error-notice" role="alert" [hidden]="!residenceErrorMessage">
+            <span aria-hidden="true">!</span>{{ residenceErrorMessage }}
+          </div>
+          <div class="notice success-notice" role="status" [hidden]="!residenceSuccessMessage">
+            <span aria-hidden="true">✓</span>{{ residenceSuccessMessage }}
+          </div>
+
+          <form #residenceFormRef="ngForm" (ngSubmit)="saveResidence()">
+            <div class="form-grid">
+              <label class="field full-field">
+                <span>Nombre querido <span class="required-mark">*</span></span>
+                <input type="text" name="nombre_querido" [(ngModel)]="residenceForm.nombre_querido" maxlength="160" required>
+              </label>
+              <label class="field full-field">
+                <span>Dirección <span class="required-mark">*</span></span>
+                <input type="text" name="direccion" [(ngModel)]="residenceForm.direccion" maxlength="500" required>
+              </label>
+              <label class="field full-field">
+                <span>Ocupación <span class="required-mark">*</span></span>
+                <textarea name="ocupacion" [(ngModel)]="residenceForm.ocupacion" rows="3" maxlength="2000" required></textarea>
+              </label>
+              <label class="field">
+                <span>Capacidad <span class="required-mark">*</span></span>
+                <input type="number" name="capacidad" [(ngModel)]="residenceForm.capacidad" min="1" max="100000" step="1" required>
+              </label>
+            </div>
+
+            <div class="form-footer">
+              <span class="required-hint"><span class="required-mark">*</span> Campos obligatorios</span>
+              <div class="form-actions">
+                <button class="button button-quiet" type="button" (click)="resetResidenceForm()" [disabled]="isSavingResidence">
+                  {{ editingResidenceId === null ? 'Limpiar' : 'Cancelar' }}
+                </button>
+                <button class="button button-primary" type="submit" [disabled]="residenceFormRef.invalid || isSavingResidence">
+                  <span aria-hidden="true">{{ editingResidenceId === null ? '＋' : '✓' }}</span>
+                  {{ isSavingResidence ? 'Guardando...' : editingResidenceId === null ? 'Registrar residencia' : 'Guardar cambios' }}
+                </button>
+              </div>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel residence-list-panel" aria-labelledby="residences-list-title">
+          <div class="list-heading">
+            <div>
+              <p class="eyebrow">REGISTRO</p>
+              <h2 id="residences-list-title">Residencias cargadas <span class="list-count">{{ residences.length }}</span></h2>
+            </div>
+          </div>
+
+          <div class="list-status" [hidden]="!isLoadingResidences" role="status">Cargando residencias...</div>
+          <div class="empty-state" [hidden]="isLoadingResidences || residences.length > 0">
+            <div class="empty-mark" aria-hidden="true">⌂</div>
+            <strong>No hay residencias cargadas</strong>
+            <p>Registrá una residencia para que aparezca en este listado.</p>
+          </div>
+
+          <div class="residence-list" [hidden]="isLoadingResidences || residences.length === 0">
+            @for (residence of residences; track residence.id) {
+              <article class="residence-item">
+                <div class="residence-details">
+                  <h3>{{ residence.nombre_querido }}</h3>
+                  <p>{{ residence.direccion }}</p>
+                  <p><span>Ocupación</span> {{ residence.ocupacion }}</p>
+                  <p><span>Capacidad</span> {{ residence.capacidad }}</p>
+                </div>
+                <button type="button" class="text-action" (click)="editResidence(residence)">Modificar</button>
+              </article>
+            }
+          </div>
+          <footer class="list-footer">
+            <span>{{ residences.length }} {{ residences.length === 1 ? 'residencia' : 'residencias' }}</span>
+            <span>Datos de residencias</span>
+          </footer>
+        </section>
+      </div>
     }
   </main>
 
   <footer class="site-footer">
     <span>Centro de Atención Comunitaria</span>
-    <span>{{ currentPage === 'contact' ? 'Primer contacto' : 'Primera escucha' }} <span aria-hidden="true">·</span> Registro interno</span>
+    <span>{{ currentPage === 'contact' ? 'Primer contacto' : currentPage === 'records' ? 'Primera escucha' : 'Mantenimiento · Residencias' }} <span aria-hidden="true">·</span> Registro interno</span>
   </footer>
 </div>
