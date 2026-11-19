@@ -37,7 +37,7 @@
       <section class="page-heading" aria-labelledby="page-title">
         <div>
           <p class="eyebrow">REGISTRO DE ATENCIÓN</p>
-          <h1 id="page-title">Primer contacto</h1>
+          <h1 id="page-title">CAC Oberlin</h1>
           <p class="page-intro">Datos para recibir, orientar y acompañar cada situación.</p>
         </div>
         <span class="privacy-note"><span aria-hidden="true">◇</span> Información confidencial</span>
@@ -377,7 +377,7 @@
     <section class="page-heading" aria-labelledby="page-title">
       <div>
         <p class="eyebrow">REGISTRO DE ATENCIÓN</p>
-        <h1 id="page-title">Primera escucha</h1>
+        <h1 id="page-title">Primera consulta</h1>
         <p class="page-intro">Un espacio para recibir, orientar y acompañar cada consulta.</p>
       </div>
       <div class="today-card">
@@ -581,20 +581,16 @@
           <form #residenceFormRef="ngForm" (ngSubmit)="saveResidence()">
             <div class="form-grid">
               <label class="field full-field">
-                <span>Nombre querido <span class="required-mark">*</span></span>
+                <span>Nombre <span class="required-mark">*</span></span>
                 <input type="text" name="nombre_querido" [(ngModel)]="residenceForm.nombre_querido" maxlength="160" required>
               </label>
               <label class="field full-field">
-                <span>Dirección <span class="required-mark">*</span></span>
-                <input type="text" name="direccion" [(ngModel)]="residenceForm.direccion" maxlength="500" required>
-              </label>
-              <label class="field full-field">
-                <span>Ocupación <span class="required-mark">*</span></span>
-                <textarea name="ocupacion" [(ngModel)]="residenceForm.ocupacion" rows="3" maxlength="2000" required></textarea>
+                <span>Dirección</span>
+                <input type="text" name="direccion" [(ngModel)]="residenceForm.direccion" maxlength="500">
               </label>
               <label class="field">
-                <span>Capacidad <span class="required-mark">*</span></span>
-                <input type="number" name="capacidad" [(ngModel)]="residenceForm.capacidad" min="1" max="100000" step="1" required>
+                <span>Capacidad</span>
+                <input type="number" name="capacidad" [(ngModel)]="residenceForm.capacidad" min="0" max="100000" step="1">
               </label>
             </div>
 
@@ -652,6 +648,6 @@
 
   <footer class="site-footer">
     <span>Centro de Atención Comunitaria</span>
-    <span>{{ currentPage === 'contact' ? 'Primer contacto' : currentPage === 'records' ? 'Primera escucha' : 'Mantenimiento · Residencias' }} <span aria-hidden="true">·</span> Registro interno</span>
+    <span>{{ currentPage === 'contact' ? 'Primer contacto' : currentPage === 'records' ? 'Primera consulta' : 'Mantenimiento · Residencias' }} <span aria-hidden="true">·</span> Registro interno</span>
   </footer>
 </div>

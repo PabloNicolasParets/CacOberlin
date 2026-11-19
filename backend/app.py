@@ -89,9 +89,9 @@ class ResidenceInput(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     nombre_querido: str = Field(min_length=2, max_length=160)
-    direccion: str = Field(min_length=2, max_length=500)
-    ocupacion: str = Field(min_length=1, max_length=2000)
-    capacidad: int = Field(ge=1, le=100000)
+    direccion: str = Field(default="", max_length=500)
+    ocupacion: int = Field(default=0, ge=0, le=100000)
+    capacidad: int = Field(default=0, ge=0, le=100000)
 
 
 class Residence(ResidenceInput):
@@ -159,14 +159,54 @@ def initialize_database() -> None:
             CREATE TABLE IF NOT EXISTS "Residencias" (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 nombre_querido TEXT NOT NULL,
-                direccion TEXT NOT NULL,
-                ocupacion TEXT NOT NULL,
-                capacidad INTEGER NOT NULL CHECK (capacidad >= 1),
+                direccion TEXT NOT NULL DEFAULT '',
+                ocupacion INTEGER NOT NULL DEFAULT 0 CHECK (ocupacion >= 0),
+                capacidad INTEGER NOT NULL DEFAULT 0 CHECK (capacidad >= 0),
                 created_at TEXT NOT NULL DEFAULT (datetime('now')),
                 updated_at TEXT NOT NULL DEFAULT (datetime('now'))
             )
             """
         )
+        residence_columns = {
+            row["name"]: row
+            for row in connection.execute(
+                'PRAGMA table_info("Residencias")'
+            ).fetchall()
+        }
+        if (
+            "ocupacion" in residence_columns
+            and residence_columns["ocupacion"]["type"].upper() != "INTEGER"
+        ):
+            connection.execute('ALTER TABLE "Residencias" RENAME TO "Residencias_old"')
+            connection.execute(
+                """
+                CREATE TABLE "Residencias" (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    nombre_querido TEXT NOT NULL,
+                    direccion TEXT NOT NULL DEFAULT '',
+                    ocupacion INTEGER NOT NULL DEFAULT 0 CHECK (ocupacion >= 0),
+                    capacidad INTEGER NOT NULL DEFAULT 0 CHECK (capacidad >= 0),
+                    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+                )
+                """
+            )
+            connection.execute(
+                """
+                INSERT INTO "Residencias"
+                    (id, nombre_querido, direccion, ocupacion, capacidad, created_at, updated_at)
+                SELECT
+                    id,
+                    nombre_querido,
+                    COALESCE(direccion, ''),
+                    CASE WHEN typeof(ocupacion) = 'integer' THEN ocupacion ELSE 0 END,
+                    CASE WHEN typeof(capacidad) = 'integer' AND capacidad >= 0 THEN capacidad ELSE 0 END,
+                    created_at,
+                    updated_at
+                FROM "Residencias_old"
+                """
+            )
+            connection.execute('DROP TABLE "Residencias_old"')
         connection.commit()
 
 

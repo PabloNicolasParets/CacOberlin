@@ -1,7 +1,7 @@
 export interface ResidenceInput {
   nombre_querido: string;
   direccion: string;
-  ocupacion: string;
+  ocupacion: number;
   capacidad: number;
 }
 

@@ -208,7 +208,6 @@ export class AppComponent implements OnInit {
       ...this.residenceForm,
       nombre_querido: this.residenceForm.nombre_querido.trim(),
       direccion: this.residenceForm.direccion.trim(),
-      ocupacion: this.residenceForm.ocupacion.trim(),
     };
     const request = this.editingResidenceId === null
       ? this.residenceService.create(payload)
@@ -429,8 +428,8 @@ export class AppComponent implements OnInit {
     return {
       nombre_querido: '',
       direccion: '',
-      ocupacion: '',
-      capacidad: 1,
+      ocupacion: 0,
+      capacidad: 0,
     };
   }
 

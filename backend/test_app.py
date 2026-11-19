@@ -213,13 +213,14 @@ class ResidenceApiTests(ApiTestCase):
         payload = {
             "nombre_querido": "Casa Esperanza",
             "direccion": "Calle 123, Oberá",
-            "ocupacion": "Alojamiento transitorio",
+            "ocupacion": 8,
             "capacidad": 12,
         }
         created_response = self.client.post("/api/residences", json=payload)
         self.assertEqual(created_response.status_code, 201)
         residence = created_response.json()
         self.assertEqual(residence["nombre_querido"], "Casa Esperanza")
+        self.assertEqual(residence["ocupacion"], 8)
 
         list_response = self.client.get("/api/residences")
         self.assertEqual([item["id"] for item in list_response.json()], [residence["id"]])
@@ -238,11 +239,22 @@ class ResidenceApiTests(ApiTestCase):
             json={
                 "nombre_querido": "Casa Esperanza",
                 "direccion": "Calle 123",
-                "ocupacion": "Alojamiento transitorio",
-                "capacidad": 0,
+                "ocupacion": 1,
+                "capacidad": -1,
             },
         )
         self.assertEqual(response.status_code, 422)
+
+    def test_name_is_the_only_required_residence_field(self) -> None:
+        response = self.client.post(
+            "/api/residences",
+            json={"nombre_querido": "Residencia mínima"},
+        )
+        self.assertEqual(response.status_code, 201)
+        residence = response.json()
+        self.assertEqual(residence["direccion"], "")
+        self.assertEqual(residence["ocupacion"], 0)
+        self.assertEqual(residence["capacidad"], 0)
 
 
 if __name__ == "__main__":
